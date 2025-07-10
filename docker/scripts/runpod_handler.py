@@ -31,6 +31,7 @@ from src.routers.openai_compatible import process_and_validate_voices
 from src.services.streaming_audio_writer import StreamingAudioWriter
 from src.services.audio import AudioService
 from src.inference.base import AudioChunk
+from src.structures.schemas import NormalizationOptions
 import numpy as np
 
 # Pydantic model for request validation
@@ -114,6 +115,14 @@ async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]
         logger.info(f"Creating audio writer for format: {request.response_format}")
         writer = StreamingAudioWriter(request.response_format, sample_rate=24000)
         
+        # Convert normalization_options dict to NormalizationOptions object
+        norm_options = None
+        if request.normalization_options:
+            logger.info("Converting normalization options to NormalizationOptions object")
+            norm_options = NormalizationOptions(**request.normalization_options)
+        else:
+            norm_options = NormalizationOptions()
+        
         # Handle different endpoint paths
         if request.path == "dev/captioned_speech":
             # Generate audio with timestamps
@@ -128,7 +137,7 @@ async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]
                     output_format=request.response_format,
                     lang_code=request.lang_code,
                     volume_multiplier=request.volume_multiplier,
-                    normalization_options=request.normalization_options,
+                    normalization_options=norm_options,
                     return_timestamps=request.return_timestamps,
                 ):
                     if chunk_data.output:
@@ -151,7 +160,7 @@ async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]
                     speed=request.speed,
                     return_timestamps=request.return_timestamps,
                     volume_multiplier=request.volume_multiplier,
-                    normalization_options=request.normalization_options,
+                    normalization_options=norm_options,
                     lang_code=request.lang_code,
                 )
                 
@@ -190,7 +199,7 @@ async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]
                 writer=writer,
                 speed=request.speed,
                 volume_multiplier=request.volume_multiplier,
-                normalization_options=request.normalization_options,
+                normalization_options=norm_options,
                 lang_code=request.lang_code,
             )
             
