@@ -31,7 +31,7 @@ curl -X GET http://localhost:8881/health
 curl -X POST http://localhost:8881/run \
   -H "Content-Type: application/json" \
   -d '{
-    "path": "v1/dev/captioned-speech",
+    "path": "dev/captioned_speech",
     "model": "kokoro",
     "input": "The quick brown fox jumped over the lazy dog.",
     "voice": "af_heart",

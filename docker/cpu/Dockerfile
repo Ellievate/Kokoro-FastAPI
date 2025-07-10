@@ -38,7 +38,7 @@ ENV PATH="/home/appuser/.cargo/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv --python 3.10 && \
     uv sync --extra cpu && \
-    uv add fastapi aiohttp uvicorn
+    uv add runpod
 
 # Copy project files including models
 COPY --chown=appuser:appuser api ./api
@@ -64,8 +64,8 @@ RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
 
 ENV DEVICE="cpu"
 
-# Expose both ports
-EXPOSE 8880 8881
+# RunPod serverless doesn't need exposed ports
+# The handler will be accessible at the /run endpoint
 
-# Run FastAPI server through entrypoint.sh
+# Run RunPod serverless handler through entrypoint.sh
 CMD ["./entrypoint.sh"]
