@@ -37,7 +37,8 @@ ENV PATH="/home/appuser/.cargo/bin:$PATH"
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv --python 3.10 && \
-    uv sync --extra cpu
+    uv sync --extra cpu && \
+    uv add fastapi aiohttp uvicorn
 
 # Copy project files including models
 COPY --chown=appuser:appuser api ./api
@@ -62,5 +63,9 @@ RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
     fi
 
 ENV DEVICE="cpu"
+
+# Expose both ports
+EXPOSE 8880 8881
+
 # Run FastAPI server through entrypoint.sh
 CMD ["./entrypoint.sh"]
