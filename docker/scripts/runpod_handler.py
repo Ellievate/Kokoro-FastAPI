@@ -226,7 +226,7 @@ async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]
         logger.error(f"Error processing request: {e}")
         return {"error": str(e)}
 
-def handler(event):
+async def handler(event):
     """
     RunPod serverless handler function
     This function is called by RunPod for each request
@@ -248,11 +248,10 @@ def handler(event):
         
         # Run the async processing with timeout
         try:
-            result = asyncio.wait_for(
+            result = await asyncio.wait_for(
                 process_kokoro_request(input_data),
                 timeout=300  # 5 minute timeout
             )
-            result = asyncio.run(result)
             logger.info("Processing completed successfully")
             return result
         except asyncio.TimeoutError:
@@ -285,7 +284,7 @@ if __name__ == "__main__":
                 "volume_multiplier": 1
             }
         }
-        result = handler(test_event)
+        result = asyncio.run(handler(test_event))
         logger.info(f"Test result: {result}")
     else:
         # Initialize RunPod serverless
