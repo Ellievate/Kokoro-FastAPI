@@ -90,19 +90,28 @@ async def initialize_kokoro():
 async def process_kokoro_request(request_data: Dict[str, Any]) -> Dict[str, Any]:
     """Process a request using Kokoro TTS service"""
     try:
+        logger.info(f"Starting to process request: {request_data}")
+        
         # Validate request
         try:
             request = RunRequest(**request_data)
+            logger.info(f"Request validation successful: {request.path}")
         except ValidationError as e:
+            logger.error(f"Request validation failed: {str(e)}")
             return {"error": f"Invalid request: {str(e)}"}
         
         # Get TTS service
+        logger.info("Initializing Kokoro TTS service...")
         tts_service = await initialize_kokoro()
+        logger.info("Kokoro TTS service initialized successfully")
         
         # Process and validate voice
+        logger.info(f"Processing voice: {request.voice}")
         voice_name = await process_and_validate_voices(request.voice, tts_service)
+        logger.info(f"Voice validation successful: {voice_name}")
         
         # Create audio writer
+        logger.info(f"Creating audio writer for format: {request.response_format}")
         writer = StreamingAudioWriter(request.response_format, sample_rate=24000)
         
         # Handle different endpoint paths
@@ -223,19 +232,62 @@ def handler(event):
     This function is called by RunPod for each request
     """
     try:
-        # Extract the request data
-        input_data = event.get('input', {})
+        logger.info(f"Received event: {json.dumps(event, indent=2)}")
         
-        # Run the async processing
-        result = asyncio.run(process_kokoro_request(input_data))
+        # Extract the request data - handle both RunPod format and direct format
+        if 'input' in event:
+            # RunPod format: {"input": {"path": "...", "model": "...", ...}}
+            input_data = event['input']
+            logger.info("Using RunPod input format")
+        else:
+            # Direct format: {"path": "...", "model": "...", ...}
+            input_data = event
+            logger.info("Using direct input format")
         
-        return result
+        logger.info(f"Processing input data: {json.dumps(input_data, indent=2)}")
+        
+        # Run the async processing with timeout
+        try:
+            result = asyncio.wait_for(
+                process_kokoro_request(input_data),
+                timeout=300  # 5 minute timeout
+            )
+            result = asyncio.run(result)
+            logger.info("Processing completed successfully")
+            return result
+        except asyncio.TimeoutError:
+            logger.error("Request timed out after 5 minutes")
+            return {"error": "Request timed out"}
         
     except Exception as e:
         logger.error(f"Handler error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    # Initialize RunPod serverless
-    logger.info("Starting RunPod serverless handler...")
-    runpod.serverless.start({"handler": handler})
+    # Check if running in test mode
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        # Test mode - run a simple test
+        logger.info("Running in test mode...")
+        test_event = {
+            "input": {
+                "path": "dev/captioned_speech",
+                "model": "kokoro",
+                "input": "Hello world",
+                "voice": "af_heart",
+                "response_format": "mp3",
+                "speed": 1,
+                "stream": False,
+                "return_timestamps": True,
+                "return_download_link": False,
+                "lang_code": "a",
+                "volume_multiplier": 1
+            }
+        }
+        result = handler(test_event)
+        logger.info(f"Test result: {result}")
+    else:
+        # Initialize RunPod serverless
+        logger.info("Starting RunPod serverless handler...")
+        runpod.serverless.start({"handler": handler})
