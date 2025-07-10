@@ -12,7 +12,7 @@ async def test_run_endpoint():
     
     # Test payload matching your requirements
     test_payload = {
-        "path": "/v1/captioned-speech",
+        "path": "dev/captioned-speech",
         "model": "kokoro",
         "input": "The quick brown fox jumped over the lazy dog.",
         "voice": "af_heart",

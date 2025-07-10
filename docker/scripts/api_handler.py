@@ -69,9 +69,6 @@ class APIHandler:
             try:
                 # Extract the path and build the full URL
                 path = request.path.lstrip('/')
-                if not path.startswith('v1/'):
-                    path = f"v1/{path}"
-                
                 kokoro_url = f"{self.kokoro_base_url}/{path}"
                 
                 # Prepare the request payload for Kokoro API
